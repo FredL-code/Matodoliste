@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Liste de Tâches</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .todo-container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        #newTask {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        li input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .delete-btn {
+            margin-left: auto;
+            background: #ff4444;
+        }
+        .delete-btn:hover {
+            background: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container">
+        <h1>Ma Liste de Tâches</h1>
+        <div class="input-group">
+            <input type="text" id="newTask" placeholder="Ajouter une nouvelle tâche">
+            <button onclick="addTask()">Ajouter</button>
+        </div>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        function addTask() {
+            const input = document.getElementById('newTask');
+            const taskText = input.value.trim();
+            
+            if (taskText) {
+                const list = document.getElementById('taskList');
+                const li = document.createElement('li');
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.onclick = function() {
+                    taskSpan.classList.toggle('completed');
+                };
+                
+                const taskSpan = document.createElement('span');
+                taskSpan.textContent = taskText;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '×';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.onclick = function() {
+                    list.removeChild(li);
+                };
+                
+                li.appendChild(checkbox);
+                li.appendChild(taskSpan);
+                li.appendChild(deleteBtn);
+                list.appendChild(li);
+                
+                input.value = '';
+            }
+        }
+
+        document.getElementById('newTask').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+    </script>
+</body>
+</html>
+
+<script>
+    // Fonction pour sauvegarder les tâches dans localStorage
+    function saveTasks() {
+        const tasks = [];
+        document.querySelectorAll('#taskTable tbody tr').forEach(row => {
+            tasks.push({
+                completed: row.querySelector('.checkbox').classList.contains('checked'),
+                name: row.cells[1].textContent,
+                description: row.cells[2].textContent,
+                category: row.className,
+                priority: row.cells[4].className,
+                dueDate: row.cells[5].textContent,
+                duration: row.cells[6].textContent
+            });
+        });
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    // Fonction pour charger les tâches depuis localStorage
+    function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+        const tbody = document.querySelector('#taskTable tbody');
+        tbody.innerHTML = '';
+        
+        tasks.forEach(task => {
+            const tr = document.createElement('tr');
+            tr.className = task.category;
+
+            tr.innerHTML = `
+                <td><div class="checkbox ${task.completed ? 'checked' : 'unchecked'}"></div></td>
+                <td>${task.name}</td>
+                <td>${task.description}</td>
+                <td>${task.category.replace('-', ' ')}</td>
+                <td class="${task.priority}">${task.priority.replace('-', ' ')}</td>
+                <td>${task.dueDate}</td>
+                <td>${task.duration}</td>
+                <td><button class="delete-btn">Supprimer</button></td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+        attachEvents();
+    }
+
+    document.getElementById('newTaskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const taskName = document.getElementById('taskName').value;
+        const description = document.getElementById('taskDescription').value;
+        const category = document.getElementById('taskCategory').value;
+        const priority = document.getElementById('taskPriority').value;
+        const dueDate = document.getElementById('taskDueDate').value;
+        const duration = parseInt(document.getElementById('taskDuration').value);
+
+        const tr = document.createElement('tr');
+        tr.className = category;
+
+        tr.innerHTML = `
+            <td><div class="checkbox unchecked"></div></td>
+            <td>${taskName}</td>
+            <td>${description}</td>
+            <td>${category.replace('-', ' ')}</td>
+            <td class="${priority}">${priority.replace('-', ' ')}</td>
+            <td class="${getEcheanceCategory(dueDate)}">${new Date(dueDate).toLocaleDateString('fr-FR')}</td>
+            <td>${formatDuration(duration)}</td>
+            <td><button class="delete-btn">Supprimer</button></td>
+        `;
+
+        document.querySelector('#taskTable tbody').appendChild(tr);
+        this.reset();
+
+        attachEvents();
+        filterTasks();
+        saveTasks();
+    });
+
+    function attachEvents() {
+        document.querySelectorAll('.checkbox').forEach(checkbox => {
+            checkbox.onclick = function() {
+                this.classList.toggle('checked');
+                this.classList.toggle('unchecked');
+                saveTasks();
+            };
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = function() {
+                this.closest('tr').remove();
+                saveTasks();
+            };
+        });
+    }
+
+    // Charger les tâches au démarrage
+    window.addEventListener('load', loadTasks);
+
+    // [Le reste du code JavaScript reste identique]
+</script>
+</body>
+</html>
